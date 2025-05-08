@@ -2,9 +2,32 @@
 
 uint16_t sensorValues[8];
 
+const int left_nslp_pin=31; // nslp ==> awake & ready for PWM
+const int left_dir_pin=29;
+const int right_dir_pin=30;
+const int left_pwm_pin=40;
+const int right_pwm_pin=39;
+const int right_nslp_pin=11;
+
+int cur;
+int pre;
+
 void setup()
 {
   ECE3_Init();
+  pinMode(left_nslp_pin,OUTPUT);
+  pinMode(left_dir_pin,OUTPUT);
+  pinMode(left_pwm_pin,OUTPUT);
+  pinMode(right_nslp_pin,OUTPUT);
+  pinMode(right_dir_pin,OUTPUT);
+  pinMode(right_pwm_pin,OUTPUT);
+
+  digitalWrite(left_dir_pin,LOW);
+  digitalWrite(left_nslp_pin,HIGH);
+  digitalWrite(right_dir_pin,LOW);
+  digitalWrite(right_nslp_pin,HIGH);
+  cur = getIRFusion();
+  pre = cur;
   Serial.begin(9600); // set the data rate in bits per second for serial data transmission
   delay(2000);
 }
@@ -12,26 +35,36 @@ void setup()
 
 void loop()
 {
-  // read raw sensor values
-  ECE3_read_IR(sensorValues);
+  cur = getIRFusion();
+  int spd = 25;
+  double pd = pid(pre, cur);
 
-  print the sensor values as numbers from 0 to 2500, where 0 means maximum reflectance and
-  2500 means minimum reflectance
-  for (unsigned char i = 0; i < 8; i++)
-  {
-    Serial.print(sensorValues[i]);
-    Serial.print('\t'); // tab to format the raw data into columns in the Serial monitor
-  }
-  Serial.println();
+  int leftSpd = (spd - pd);
+  int rightSpd = (spd + pd);
+
+  analogWrite(left_pwm_pin,leftSpd);
+  analogWrite(right_pwm_pin,rightSpd);
+
+  pre = cur;
+
+  // print the sensor values as numbers from 0 to 2500, where 0 means maximum reflectance and
+  // 2500 means minimum reflectance
+  // for (unsigned char i = 0; i < 8; i++)
+  // {
+  //   Serial.print(sensorValues[i]);
+  //   Serial.print('\t'); // tab to format the raw data into columns in the Serial monitor
+  // }
+  // Serial.println();
+
 
   // delay(50);
 }
 
 int getIRFusion()
 {
-  double sensorValues[8];
-  int16_t minValues[8] = [596,	527,	619,	619,	505,	685,	643,	713];
-  int16_t maxValues[8] = [1516,	1395,	1730,	1208,	1203,	1616,	1492,	1787];
+  uint16_t sensorValues[8];
+  int16_t minValues[8] = {596,	527,	619,	619,	505,	685,	643,	713};
+  int16_t maxValues[8] = {1516,	1395,	1730,	1208,	1203,	1616,	1492,	1787};
   ECE3_read_IR(sensorValues);
 
   double fusion = 0;
@@ -111,4 +144,12 @@ int getIRFusion()
   //fusion/=8;
 
   return fusion;
+}
+
+double pid(int prev, int cur)
+{
+  double kp = 0.1;
+  double kd = 0.1;
+
+  return (kp * cur + (cur - prev) * kd);
 }
