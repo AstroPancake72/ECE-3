@@ -9,6 +9,8 @@ const int left_pwm_pin=40;
 const int right_pwm_pin=39;
 const int right_nslp_pin=11;
 
+uint16_t inside;
+
 int cur;
 int pre;
 
@@ -36,11 +38,80 @@ void setup()
 void loop()
 {
   cur = getIRFusion();
-  int spd = 25;
+  int spd = 35;
   double pd = pid(pre, cur);
 
+  if (sensorValues[3] > sensorValues[4])
+  {
+    inside = sensorValues[3];
+  }
+  else
+  {
+    inside = sensorValues[4];
+  }
+
+  if (inside > sensorValues[0] && inside > sensorValues[1] && inside > sensorValues[2] && inside > sensorValues[5] && inside > sensorValues[6] && inside > sensorValues[7])
+  {
+    pd = 0;
+  }
+
+  bool all = false;
+  for (int i = 0; i < 8; i++)
+  {
+    if (sensorValues[i] < 600)
+    {
+      break;
+    }
+    if (i == 7)
+    {
+      all = true;
+    }
+  }
+
+  if (all)
+  {
+    pd = 0;
+  }
+
   int leftSpd = (spd - pd);
+  if (leftSpd < 0)
+  {
+    digitalWrite(left_dir_pin,HIGH);
+    leftSpd *= -1;
+    if (leftSpd > 30)
+    {
+      leftSpd = 30;
+    }
+  }
+  else
+  {
+    digitalWrite(left_dir_pin,LOW);
+  }
+
+  if (leftSpd > 60)
+  {
+    leftSpd = 60;
+  }
+
   int rightSpd = (spd + pd);
+  if (rightSpd < 0)
+  {
+    digitalWrite(right_dir_pin,HIGH);
+    rightSpd *= -1;
+    if (rightSpd > 30)
+    {
+      rightSpd = 30;
+    }
+  }
+  else
+  {
+    digitalWrite(right_dir_pin,LOW);
+  }
+
+  if (rightSpd > 60)
+  {
+    rightSpd = 60;
+  }
 
   analogWrite(left_pwm_pin,leftSpd);
   analogWrite(right_pwm_pin,rightSpd);
@@ -84,7 +155,6 @@ int getIRFusion()
     }
 
     sensorValues[i] = (1000 * sensorValues[i]/maxValues[i]);
-
     switch (i)
     {
       case 0:
@@ -149,7 +219,7 @@ int getIRFusion()
 double pid(int prev, int cur)
 {
   double kp = 0.1;
-  double kd = 0.1;
+  double kd = 2;
 
   return (kp * cur + (cur - prev) * kd);
 }
