@@ -1,6 +1,8 @@
 #include <ECE3.h>
 
 uint16_t sensorValues[8];
+int16_t minValues[8] = {596,	527,	619,	619,	505,	685,	643,	713};
+int16_t maxValues[8] = {1516,	1395,	1730,	1208,	1203,	1616,	1492,	1787};
 
 const int left_nslp_pin=31; // nslp ==> awake & ready for PWM
 const int left_dir_pin=29;
@@ -10,6 +12,8 @@ const int right_pwm_pin=39;
 const int right_nslp_pin=11;
 
 uint16_t inside;
+uint16_t outside1;
+uint16_t outside2;
 
 int cur;
 int pre;
@@ -37,24 +41,41 @@ void setup()
 
 void loop()
 {
-  cur = getIRFusion();
+  ECE3_read_IR(sensorValues);
   int spd = 35;
-  double pd = pid(pre, cur);
 
-  if (sensorValues[3] > sensorValues[4])
-  {
-    inside = sensorValues[3];
-  }
-  else
-  {
-    inside = sensorValues[4];
-  }
+  bool straight = false;
+
+  //checks for inside to go straight
+  inside = sensorValues[3] + sensorValues[4];
+  inside /= 2;
+  inside -= 100;
 
   if (inside > sensorValues[0] && inside > sensorValues[1] && inside > sensorValues[2] && inside > sensorValues[5] && inside > sensorValues[6] && inside > sensorValues[7])
   {
-    pd = 0;
+    straight = true;
   }
 
+  uint16_t right = sensorValues[0] + sensorValues[1] + sensorValues[2];
+  uint16_t left = sensorValues[5] + sensorValues[6] + sensorValues[7];
+
+  if (!straight && left >= 2200 && right >= 2200 && (right - 400) <= left)
+  {
+    sensorValues[0] = 0;
+    sensorValues[1] = 0;
+  }
+
+  cur = getIRFusion();
+
+  int pd = pid(pre, cur);
+
+  if (straight)
+  {
+    pd /= 5;
+  }
+
+
+  //checks if at full black line
   bool all = false;
   for (int i = 0; i < 8; i++)
   {
@@ -73,14 +94,15 @@ void loop()
     pd = 0;
   }
 
+  //left spd
   int leftSpd = (spd - pd);
   if (leftSpd < 0)
   {
     digitalWrite(left_dir_pin,HIGH);
     leftSpd *= -1;
-    if (leftSpd > 30)
+    if (leftSpd > 45)
     {
-      leftSpd = 30;
+      leftSpd = 45;
     }
   }
   else
@@ -93,14 +115,16 @@ void loop()
     leftSpd = 60;
   }
 
+
+  //right spd
   int rightSpd = (spd + pd);
   if (rightSpd < 0)
   {
     digitalWrite(right_dir_pin,HIGH);
     rightSpd *= -1;
-    if (rightSpd > 30)
+    if (rightSpd > 45)
     {
-      rightSpd = 30;
+      rightSpd = 45;
     }
   }
   else
@@ -116,7 +140,9 @@ void loop()
   analogWrite(left_pwm_pin,leftSpd);
   analogWrite(right_pwm_pin,rightSpd);
 
+  //stuff for kd
   pre = cur;
+  straight = true;
 
   // print the sensor values as numbers from 0 to 2500, where 0 means maximum reflectance and
   // 2500 means minimum reflectance
@@ -133,10 +159,6 @@ void loop()
 
 int getIRFusion()
 {
-  uint16_t sensorValues[8];
-  int16_t minValues[8] = {596,	527,	619,	619,	505,	685,	643,	713};
-  int16_t maxValues[8] = {1516,	1395,	1730,	1208,	1203,	1616,	1492,	1787};
-  ECE3_read_IR(sensorValues);
 
   double fusion = 0;
 
@@ -216,10 +238,10 @@ int getIRFusion()
   return fusion;
 }
 
-double pid(int prev, int cur)
+int pid(int prev, int cur)
 {
   double kp = 0.1;
   double kd = 2;
 
-  return (kp * cur + (cur - prev) * kd);
+  return (int)(kp * cur + (cur - prev) * kd);
 }
