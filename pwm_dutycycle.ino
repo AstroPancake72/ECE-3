@@ -56,6 +56,7 @@ void loop()
     straight = true;
   }
 
+  //checks for split
   uint16_t right = sensorValues[0] + sensorValues[1] + sensorValues[2];
   uint16_t left = sensorValues[5] + sensorValues[6] + sensorValues[7];
 
@@ -92,6 +93,25 @@ void loop()
   if (all)
   {
     pd = 0;
+  }
+
+  //checks if lost track
+  bool none = false;
+  for (int i = 0; i < 8; i++)
+  {
+    if (sensorValues[i] > 600)
+    {
+      break;
+    }
+    if (i == 7)
+    {
+      none = true;
+    }
+  }
+
+  if (none)
+  {
+    pd = 30;
   }
 
   //left spd
@@ -142,7 +162,6 @@ void loop()
 
   //stuff for kd
   pre = cur;
-  straight = true;
 
   // print the sensor values as numbers from 0 to 2500, where 0 means maximum reflectance and
   // 2500 means minimum reflectance
