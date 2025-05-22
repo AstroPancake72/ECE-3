@@ -45,44 +45,44 @@ void setup() {
 
 void loop() {
   ECE3_read_IR(sensorValues);
-  int spd = 35;
+  int spd = 45;
 
-  bool straight = false;
+  // bool straight = false;
 
-  //checks for inside to go straight
-  inside = sensorValues[3] + sensorValues[4];
-  // inside /= 2;
-  inside += 300;
+  // //checks for inside to go straight
+  // inside = sensorValues[3] + sensorValues[4];
+  // // inside /= 2;
+  // inside += 300;
 
-  uint16_t right = sensorValues[0] + sensorValues[1] + sensorValues[2];
-  uint16_t left = sensorValues[5] + sensorValues[6] + sensorValues[7];
+  // uint16_t right = sensorValues[0] + sensorValues[1] + sensorValues[2];
+  // uint16_t left = sensorValues[5] + sensorValues[6] + sensorValues[7];
 
-  // if (inside > sensorValues[0] && inside > sensorValues[1] && inside > sensorValues[2] && inside > sensorValues[5] && inside > sensorValues[6] && inside > sensorValues[7]) {
+  // // if (inside > sensorValues[0] && inside > sensorValues[1] && inside > sensorValues[2] && inside > sensorValues[5] && inside > sensorValues[6] && inside > sensorValues[7]) {
+  // //   straight = true;
+  // // }
+
+  // if (inside > right + left)
+  // {
   //   straight = true;
   // }
 
-  if (inside > right + left)
-  {
-    straight = true;
-  }
+  // // checks for split or arch
 
-  // checks for split or arch
-
-  if (!straight && !halfway && left >= 2200 && right >= 2200 && (right - 400) <= left) {
-    sensorValues[0] = 0;
-    sensorValues[1] = 0;
-  } else if (!straight && halfway && right >= 2200 && left >= 2200 && (left - 400) <= right) {
-    sensorValues[6] = 0;
-    sensorValues[7] = 0;
-  }
+  // if (!straight && !halfway && left >= 2200 && right >= 2200 && (right - 400) <= left) {
+  //   sensorValues[0] = 0;
+  //   sensorValues[1] = 0;
+  // } else if (!straight && halfway && right >= 2200 && left >= 2200 && (left - 400) <= right) {
+  //   sensorValues[6] = 0;
+  //   sensorValues[7] = 0;
+  // }
 
   cur = getIRFusion();
 
   int pd = pid(pre, cur);
 
-  if (straight) {
-    pd = 0;
-  }
+  // if (straight) {
+  //   pd = 0;
+  // }
 
 
   //checks if at full black line
@@ -96,7 +96,11 @@ void loop() {
       phantom = false;
   }
   else {
-    if (phantom)
+    if (phantom && all)
+    {
+        delay(99999999);
+    }
+    else if (phantom)
     {
       all = true;
       halfway = true;
@@ -120,7 +124,7 @@ void loop() {
   }
 
   if (none) {
-    pd = -30;
+    pd = -60;
   }
 
   //left spd
@@ -209,6 +213,9 @@ int getIRFusion() {
     }
 
     sensorValues[i] = (1000 * sensorValues[i] / maxValues[i]);
+
+    if (!halfway)
+    {
     switch (i) {
       case 0:
         fusion -= 8 * sensorValues[i];
@@ -217,48 +224,52 @@ int getIRFusion() {
         fusion -= 4 * sensorValues[i];
         break;
       case 2:
-        fusion -= 2 * sensorValues[i];
-        break;
-      case 3:
         fusion -= 1 * sensorValues[i];
         break;
-      case 4:
+      case 3:
         fusion += 1 * sensorValues[i];
         break;
-      case 5:
+      case 4:
         fusion += 2 * sensorValues[i];
         break;
+      case 5:
+        fusion += 6 * sensorValues[i];
+        break;
       case 6:
-        fusion += 4 * sensorValues[i];
+        fusion += 8 * sensorValues[i];
         break;
       case 7:
-        fusion += 8 * sensorValues[i];
-
-        /*
-        case 0:
-        fusion -= 15*sensorValues[i];
+        fusion += 10 * sensorValues[i];
+        break;
+      }
+    }
+    else
+    {
+      switch (i) {
+      case 0:
+        fusion -= 10*sensorValues[i];
         break;
       case 1:
-        fusion -= 14*sensorValues[i];
-        break;
-      case 2:
-        fusion -= 12*sensorValues[i];
-        break;
-      case 3:
         fusion -= 8*sensorValues[i];
         break;
+      case 2:
+        fusion -= 6*sensorValues[i];
+        break;
+      case 3:
+        fusion -= 2*sensorValues[i];
+        break;
       case 4:
-        fusion += 8*sensorValues[i];
+        fusion -= 1*sensorValues[i];
         break;
       case 5:
-        fusion += 12*sensorValues[i];
+        fusion += 1*sensorValues[i];
         break;
       case 6:
-        fusion += 14*sensorValues[i];
+        fusion += 4*sensorValues[i];
         break;
       case 7:
-        fusion += 15*sensorValues[i];
-        */
+        fusion += 8*sensorValues[i];
+      }
     }
   }
 
@@ -269,8 +280,8 @@ int getIRFusion() {
 }
 
 int pid(int prev, int cur) {
-  double kp = 0.1;
-  double kd = 2;
+  float kp = 0.15;
+  float kd = 2;
 
   return (int)(kp * cur + (cur - prev) * kd);
 }
