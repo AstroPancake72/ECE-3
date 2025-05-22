@@ -96,7 +96,7 @@ void loop() {
       phantom = false;
   }
   else {
-    if (phantom && all)
+    if (halfway && phantom)
     {
         delay(99999999);
     }
