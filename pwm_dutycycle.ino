@@ -178,7 +178,7 @@ void loop() {
   analogWrite(right_pwm_pin, rightSpd);
 
   if (all) {
-    delay(1000);
+    delay(600);
   }
 
   //stuff for kd
