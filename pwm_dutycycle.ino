@@ -88,12 +88,25 @@ void loop() {
   //checks if at full black line
   bool all = false;
   int sensor_sum = 0;
-  for (int i = 0; i < 8; i++) {
-    sensor_sum+=sensorValues[i];
+  if (!halfway)
+  {
+    for (int i = 0; i < 6; i++) {
+      sensor_sum+=sensorValues[i];
+    }
+  }
+  else
+  {
+    for (int i = 2; i < 8; i++) {
+      sensor_sum+=sensorValues[i];
+    }
   }
 
-  if (sensor_sum < 7500) {
+  if (!halfway && sensor_sum < 5200) {
       phantom = false;
+  }
+  else if (halfway && sensor_sum < 5700)
+  {
+    phantom = false;
   }
   else {
     if (halfway && phantom)
@@ -132,15 +145,15 @@ void loop() {
   if (leftSpd < 0) {
     digitalWrite(left_dir_pin, HIGH);
     leftSpd *= -1;
-    if (leftSpd > 45) {
-      leftSpd = 45;
+    if (leftSpd > 55) {
+      leftSpd = 55;
     }
   } else {
     digitalWrite(left_dir_pin, LOW);
   }
 
-  if (leftSpd > 60) {
-    leftSpd = 60;
+  if (leftSpd > 80) {
+    leftSpd = 80;
   }
 
 
@@ -149,15 +162,15 @@ void loop() {
   if (rightSpd < 0) {
     digitalWrite(right_dir_pin, HIGH);
     rightSpd *= -1;
-    if (rightSpd > 45) {
-      rightSpd = 45;
+    if (rightSpd > 55) {
+      rightSpd = 55;
     }
   } else {
     digitalWrite(right_dir_pin, LOW);
   }
 
-  if (rightSpd > 60) {
-    rightSpd = 60;
+  if (rightSpd > 80) {
+    rightSpd = 80;
   }
 
   if (phantom && !all)
